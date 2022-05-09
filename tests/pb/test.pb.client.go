@@ -18,8 +18,10 @@ package test
 
 import (
 	"context"
+	"fmt"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/anypb"
 )
 
@@ -33,8 +35,8 @@ type Test interface {
 	UnaryParamsAny(ctx context.Context, any *anypb.Any, string string, opts ...grpc.CallOption) (Any *anypb.Any, String_ string, err error)
 }
 
-func NewTest(c TestClient) Test {
-	return &clientTest{c: c}
+func NewTest(cc grpc.ClientConnInterface) Test {
+	return &clientTest{c: NewTestClient(cc)}
 }
 
 type clientTest struct {
@@ -44,6 +46,7 @@ type clientTest struct {
 // UnaryEmpty ...
 func (x *clientTest) UnaryEmpty(ctx context.Context, opts ...grpc.CallOption) (err error) {
 	_, err = x.c.UnaryEmpty(ctx, &UnaryEmptyRequest{}, opts...)
+	err = x.unwrap(err)
 	if err != nil {
 		return
 	}
@@ -53,6 +56,7 @@ func (x *clientTest) UnaryEmpty(ctx context.Context, opts ...grpc.CallOption) (e
 // UnaryReqParams ...
 func (x *clientTest) UnaryReqParams(ctx context.Context, msg *Message, opts ...grpc.CallOption) (err error) {
 	_, err = x.c.UnaryReqParams(ctx, &UnaryRequestParams{Msg: msg}, opts...)
+	err = x.unwrap(err)
 	if err != nil {
 		return
 	}
@@ -63,6 +67,7 @@ func (x *clientTest) UnaryReqParams(ctx context.Context, msg *Message, opts ...g
 func (x *clientTest) UnaryResParams(ctx context.Context, opts ...grpc.CallOption) (Msg *Message, err error) {
 	var res *UnaryResponseParams
 	res, err = x.c.UnaryResParams(ctx, &UnaryEmptyRequest{}, opts...)
+	err = x.unwrap(err)
 	if err != nil {
 		return
 	}
@@ -73,6 +78,7 @@ func (x *clientTest) UnaryResParams(ctx context.Context, opts ...grpc.CallOption
 func (x *clientTest) UnaryParams(ctx context.Context, msg *Message, opts ...grpc.CallOption) (Msg *Message, err error) {
 	var res *UnaryResponseParams
 	res, err = x.c.UnaryParams(ctx, &UnaryRequestParams{Msg: msg}, opts...)
+	err = x.unwrap(err)
 	if err != nil {
 		return
 	}
@@ -83,8 +89,17 @@ func (x *clientTest) UnaryParams(ctx context.Context, msg *Message, opts ...grpc
 func (x *clientTest) UnaryParamsAny(ctx context.Context, any *anypb.Any, string string, opts ...grpc.CallOption) (Any *anypb.Any, String_ string, err error) {
 	var res *UnaryResponseParamsAny
 	res, err = x.c.UnaryParamsAny(ctx, &UnaryRequestParamsAny{Any: any, String_: string}, opts...)
+	err = x.unwrap(err)
 	if err != nil {
 		return
 	}
 	return res.Any, res.String_, nil
+}
+
+// unwrap convert grpc status error to go error
+func (x *clientTest) unwrap(err error) error {
+	if s, ok := status.FromError(err); ok && s != nil {
+		return fmt.Errorf(s.Message())
+	}
+	return nil
 }

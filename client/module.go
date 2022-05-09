@@ -154,10 +154,12 @@ const fieldsTpl = `{{ comment .SyntaxSourceCodeInfo.LeadingComments }}
 package {{ package . }}
 
 import (
-	"context"
+    "context"
+    "fmt"
 
-	"google.golang.org/grpc"
-	{{ imports }}
+    "google.golang.org/grpc"
+    "google.golang.org/grpc/status"
+    {{ imports }}
 )
 
 {{ range .Services }}
@@ -179,8 +181,8 @@ type {{ $name }} interface {
 {{- end }}
 }
 
-func New{{ $name }}(c {{ clientName . }}) {{ $name }} {
-	return &client{{ $name }}{c: c}
+func New{{ $name }}(cc grpc.ClientConnInterface) {{ $name }} {
+	return &client{{ $name }}{c: New{{ clientName . }}(cc)}
 }
 
 type client{{ $name }} struct {
@@ -199,6 +201,7 @@ type client{{ $name }} struct {
 func (x *client{{ $name }}) {{ .Name }}({{ params .Input}}, opts ...grpc.CallOption) ({{ returns .Output }}){
     {{- if not (empty .Output) }}var res *{{ .Output.Name }}{{ end }}
     {{ if not (empty .Output) }}res{{ else }}_{{ end }}, err = x.c.{{ .Name }}({{ requestParams .Input }})
+    err = x.unwrap(err)
     if err != nil {
         return
     }
@@ -206,5 +209,12 @@ func (x *client{{ $name }}) {{ .Name }}({{ params .Input}}, opts ...grpc.CallOpt
 }
 {{ end }}
 {{ end }}
+// unwrap convert grpc status error to go error
+func (x *client{{ $name }}) unwrap(err error) error {
+	if s, ok := status.FromError(err); ok && s != nil {
+		return fmt.Errorf(s.Message())
+	}
+	return nil
+}
 {{ end }}
 `
