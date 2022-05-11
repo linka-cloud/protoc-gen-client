@@ -19,6 +19,7 @@ package go.client.test;
 option go_package = "go.linka.cloud/protoc-gen-client/tests/pb/test";
 
 import "google/protobuf/any.proto";
+import "patch/go.proto";
 
 
 service Test {
@@ -42,11 +43,11 @@ message UnaryResponseParams {
 }
 message UnaryRequestParamsAny {
   google.protobuf.Any any = 1;
-  string string = 2;
+  string string = 2 [(go.field).type = "String"];
 }
 message UnaryResponseParamsAny {
   google.protobuf.Any any = 1;
-  string string = 2;
+  string string = 2 [(go.field).type = "String"];
 }
 message ClientStreamRequest {}
 message ClientStreamResponse {}

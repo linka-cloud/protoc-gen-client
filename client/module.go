@@ -19,6 +19,7 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/alta/protopatch/patch/gopb"
 	pgs "github.com/lyft/protoc-gen-star"
 	pgsgo "github.com/lyft/protoc-gen-star/lang/go"
 )
@@ -54,14 +55,24 @@ func (p *client) InitContext(c pgs.BuildContext) {
 		"params": func(m pgs.Message) string {
 			params := []string{"ctx context.Context"}
 			for _, v := range m.Fields() {
-				params = append(params, fmt.Sprintf("%s %s", p.ctx.Name(v).LowerCamelCase(), p.ctx.Type(v)))
+				t := p.ctx.Type(v).String()
+				var o *gopb.Options
+				if ok, _ := v.Extension(gopb.E_Field, &o); ok && o.GetType() != "" {
+					t = o.GetType()
+				}
+				params = append(params, fmt.Sprintf("%s %s", p.ctx.Name(v).LowerCamelCase(), t))
 			}
 			return strings.Join(params, ", ")
 		},
 		"returns": func(m pgs.Message) string {
 			var returns []string
 			for _, v := range m.Fields() {
-				returns = append(returns, fmt.Sprintf("%s %s", p.ctx.Name(v), p.ctx.Type(v)))
+				t := p.ctx.Type(v).String()
+				var o *gopb.Options
+				if ok, _ := v.Extension(gopb.E_Field, &o); ok && o.GetType() != "" {
+					t = o.GetType()
+				}
+				returns = append(returns, fmt.Sprintf("%s %s", p.ctx.Name(v), t))
 			}
 			return strings.Join(append(returns, "err error"), ", ")
 		},
