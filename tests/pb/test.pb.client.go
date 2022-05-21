@@ -31,8 +31,9 @@ type Test interface {
 	UnaryEmpty(ctx context.Context, opts ...grpc.CallOption) (err error)
 	UnaryReqParams(ctx context.Context, msg *Message, opts ...grpc.CallOption) (err error)
 	UnaryResParams(ctx context.Context, opts ...grpc.CallOption) (Msg *Message, err error)
+	UnaryOneOfParams(ctx context.Context, oneOf isUnaryOneOfParamsMsg_OneOf, opts ...grpc.CallOption) (OneOf isUnaryOneOfParamsMsg_OneOf, err error)
 	UnaryParams(ctx context.Context, msg *Message, opts ...grpc.CallOption) (Msg *Message, err error)
-	UnaryParamsAny(ctx context.Context, any *anypb.Any, string String, opts ...grpc.CallOption) (Any *anypb.Any, String_ String, err error)
+	UnaryParamsAny(ctx context.Context, any *anypb.Any, string *String, opts ...grpc.CallOption) (Any *anypb.Any, String_ *String, err error)
 }
 
 func NewTest(cc grpc.ClientConnInterface) Test {
@@ -74,6 +75,17 @@ func (x *clientTest) UnaryResParams(ctx context.Context, opts ...grpc.CallOption
 	return res.Msg, nil
 }
 
+// UnaryOneOfParams ...
+func (x *clientTest) UnaryOneOfParams(ctx context.Context, oneOf isUnaryOneOfParamsMsg_OneOf, opts ...grpc.CallOption) (OneOf isUnaryOneOfParamsMsg_OneOf, err error) {
+	var res *UnaryOneOfParamsMsg
+	res, err = x.c.UnaryOneOfParams(ctx, &UnaryOneOfParamsMsg{OneOf: oneOf}, opts...)
+	err = x.unwrap(err)
+	if err != nil {
+		return
+	}
+	return res.OneOf, nil
+}
+
 // UnaryParams ...
 func (x *clientTest) UnaryParams(ctx context.Context, msg *Message, opts ...grpc.CallOption) (Msg *Message, err error) {
 	var res *UnaryResponseParams
@@ -86,9 +98,9 @@ func (x *clientTest) UnaryParams(ctx context.Context, msg *Message, opts ...grpc
 }
 
 // UnaryParamsAny ...
-func (x *clientTest) UnaryParamsAny(ctx context.Context, any *anypb.Any, string String, opts ...grpc.CallOption) (Any *anypb.Any, String_ String, err error) {
+func (x *clientTest) UnaryParamsAny(ctx context.Context, any *anypb.Any, string *String, opts ...grpc.CallOption) (Any *anypb.Any, String_ *String, err error) {
 	var res *UnaryResponseParamsAny
-	res, err = x.c.UnaryParamsAny(ctx, &UnaryRequestParamsAny{Any: any, String_: String(string)}, opts...)
+	res, err = x.c.UnaryParamsAny(ctx, &UnaryRequestParamsAny{Any: any, String_: (*String)(string)}, opts...)
 	err = x.unwrap(err)
 	if err != nil {
 		return

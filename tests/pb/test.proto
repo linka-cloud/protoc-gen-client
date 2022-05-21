@@ -26,6 +26,7 @@ service Test {
   rpc UnaryEmpty(UnaryEmptyRequest) returns (UnaryEmptyResponse);
   rpc UnaryReqParams(UnaryRequestParams) returns (UnaryEmptyResponse);
   rpc UnaryResParams(UnaryEmptyRequest) returns (UnaryResponseParams);
+  rpc UnaryOneOfParams(UnaryOneOfParamsMsg) returns (UnaryOneOfParamsMsg);
   rpc UnaryParams(UnaryRequestParams) returns (UnaryResponseParams);
   rpc UnaryParamsAny(UnaryRequestParamsAny) returns (UnaryResponseParamsAny);
   rpc ClientStream(stream UnaryRequestParams) returns (UnaryResponseParams);
@@ -43,11 +44,17 @@ message UnaryResponseParams {
 }
 message UnaryRequestParamsAny {
   google.protobuf.Any any = 1;
-  string string = 2 [(go.field).type = "String"];
+  optional string string = 2 [(go.field).type = "String"];
 }
 message UnaryResponseParamsAny {
   google.protobuf.Any any = 1;
-  string string = 2 [(go.field).type = "String"];
+  optional string string = 2 [(go.field).type = "String"];
+}
+message UnaryOneOfParamsMsg {
+  oneof one_of {
+    string string = 1;
+    int32 number = 2;
+  }
 }
 message ClientStreamRequest {}
 message ClientStreamResponse {}

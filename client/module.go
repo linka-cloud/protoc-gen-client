@@ -54,25 +54,49 @@ func (p *client) InitContext(c pgs.BuildContext) {
 		"serverStream": p.ctx.ServerStream,
 		"params": func(m pgs.Message) string {
 			params := []string{"ctx context.Context"}
+			oneofs := make(map[string]struct{})
 			for _, v := range m.Fields() {
 				t := p.ctx.Type(v).String()
 				var o *gopb.Options
 				if ok, _ := v.Extension(gopb.E_Field, &o); ok && o.GetType() != "" {
 					t = o.GetType()
 				}
-				params = append(params, fmt.Sprintf("%s %s", p.ctx.Name(v).LowerCamelCase(), t))
+				switch {
+				case v.InRealOneOf():
+					if _, ok := oneofs[v.OneOf().Name().String()]; ok {
+						continue
+					}
+					oneofs[v.OneOf().Name().String()] = struct{}{}
+					params = append(params, fmt.Sprintf("%s is%s_%s", p.ctx.Name(v.OneOf()).LowerCamelCase(), p.ctx.Name(m), p.ctx.Name(v.OneOf())))
+				case v.InOneOf() && v.HasOptionalKeyword():
+					params = append(params, fmt.Sprintf("%s *%s", p.ctx.Name(v).LowerCamelCase(), t))
+				default:
+					params = append(params, fmt.Sprintf("%s %s", p.ctx.Name(v).LowerCamelCase(), t))
+				}
 			}
 			return strings.Join(params, ", ")
 		},
 		"returns": func(m pgs.Message) string {
 			var returns []string
+			oneofs := make(map[string]struct{})
 			for _, v := range m.Fields() {
 				t := p.ctx.Type(v).String()
 				var o *gopb.Options
 				if ok, _ := v.Extension(gopb.E_Field, &o); ok && o.GetType() != "" {
 					t = o.GetType()
 				}
-				returns = append(returns, fmt.Sprintf("%s %s", p.ctx.Name(v), t))
+				switch {
+				case v.InRealOneOf():
+					if _, ok := oneofs[v.OneOf().Name().String()]; ok {
+						continue
+					}
+					oneofs[v.OneOf().Name().String()] = struct{}{}
+					returns = append(returns, fmt.Sprintf("%s is%s_%s", p.ctx.Name(v.OneOf()), p.ctx.Name(m), p.ctx.Name(v.OneOf())))
+				case v.InOneOf() && v.HasOptionalKeyword():
+					returns = append(returns, fmt.Sprintf("%s *%s", p.ctx.Name(v), t))
+				default:
+					returns = append(returns, fmt.Sprintf("%s %s", p.ctx.Name(v), t))
+				}
 			}
 			return strings.Join(append(returns, "err error"), ", ")
 		},
@@ -81,15 +105,35 @@ func (p *client) InitContext(c pgs.BuildContext) {
 		},
 		"requestParams": func(m pgs.Message) string {
 			var fields []string
+			oneofs := make(map[string]struct{})
 			for _, v := range m.Fields() {
-				fields = append(fields, fmt.Sprintf("%s: %s", p.ctx.Name(v), p.ctx.Name(v).LowerCamelCase()))
+				switch {
+				case v.InRealOneOf():
+					if _, ok := oneofs[v.OneOf().Name().String()]; ok {
+						continue
+					}
+					oneofs[v.OneOf().Name().String()] = struct{}{}
+					fields = append(fields, fmt.Sprintf("%s: %s", p.ctx.Name(v.OneOf()), p.ctx.Name(v.OneOf()).LowerCamelCase()))
+				default:
+					fields = append(fields, fmt.Sprintf("%s: %s", p.ctx.Name(v), p.ctx.Name(v).LowerCamelCase()))
+				}
 			}
 			return fmt.Sprintf("ctx, &%s{%s}, opts...", p.ctx.Name(m).UpperCamelCase(), strings.Join(fields, ", "))
 		},
 		"response": func(m pgs.Message) string {
 			var fields []string
+			oneofs := make(map[string]struct{})
 			for _, v := range m.Fields() {
-				fields = append(fields, fmt.Sprintf("res.%s", p.ctx.Name(v)))
+				switch {
+				case v.InRealOneOf():
+					if _, ok := oneofs[v.OneOf().Name().String()]; ok {
+						continue
+					}
+					oneofs[v.OneOf().Name().String()] = struct{}{}
+					fields = append(fields, fmt.Sprintf("res.%s", p.ctx.Name(v.OneOf())))
+				default:
+					fields = append(fields, fmt.Sprintf("res.%s", p.ctx.Name(v)))
+				}
 			}
 			return strings.Join(append(fields, "nil"), ", ")
 		},

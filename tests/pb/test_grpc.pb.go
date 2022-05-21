@@ -21,6 +21,7 @@ type TestClient interface {
 	UnaryEmpty(ctx context.Context, in *UnaryEmptyRequest, opts ...grpc.CallOption) (*UnaryEmptyResponse, error)
 	UnaryReqParams(ctx context.Context, in *UnaryRequestParams, opts ...grpc.CallOption) (*UnaryEmptyResponse, error)
 	UnaryResParams(ctx context.Context, in *UnaryEmptyRequest, opts ...grpc.CallOption) (*UnaryResponseParams, error)
+	UnaryOneOfParams(ctx context.Context, in *UnaryOneOfParamsMsg, opts ...grpc.CallOption) (*UnaryOneOfParamsMsg, error)
 	UnaryParams(ctx context.Context, in *UnaryRequestParams, opts ...grpc.CallOption) (*UnaryResponseParams, error)
 	UnaryParamsAny(ctx context.Context, in *UnaryRequestParamsAny, opts ...grpc.CallOption) (*UnaryResponseParamsAny, error)
 	ClientStream(ctx context.Context, opts ...grpc.CallOption) (Test_ClientStreamClient, error)
@@ -57,6 +58,15 @@ func (c *testClient) UnaryReqParams(ctx context.Context, in *UnaryRequestParams,
 func (c *testClient) UnaryResParams(ctx context.Context, in *UnaryEmptyRequest, opts ...grpc.CallOption) (*UnaryResponseParams, error) {
 	out := new(UnaryResponseParams)
 	err := c.cc.Invoke(ctx, "/go.client.test.Test/UnaryResParams", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *testClient) UnaryOneOfParams(ctx context.Context, in *UnaryOneOfParamsMsg, opts ...grpc.CallOption) (*UnaryOneOfParamsMsg, error) {
+	out := new(UnaryOneOfParamsMsg)
+	err := c.cc.Invoke(ctx, "/go.client.test.Test/UnaryOneOfParams", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -185,6 +195,7 @@ type TestServer interface {
 	UnaryEmpty(context.Context, *UnaryEmptyRequest) (*UnaryEmptyResponse, error)
 	UnaryReqParams(context.Context, *UnaryRequestParams) (*UnaryEmptyResponse, error)
 	UnaryResParams(context.Context, *UnaryEmptyRequest) (*UnaryResponseParams, error)
+	UnaryOneOfParams(context.Context, *UnaryOneOfParamsMsg) (*UnaryOneOfParamsMsg, error)
 	UnaryParams(context.Context, *UnaryRequestParams) (*UnaryResponseParams, error)
 	UnaryParamsAny(context.Context, *UnaryRequestParamsAny) (*UnaryResponseParamsAny, error)
 	ClientStream(Test_ClientStreamServer) error
@@ -205,6 +216,9 @@ func (UnimplementedTestServer) UnaryReqParams(context.Context, *UnaryRequestPara
 }
 func (UnimplementedTestServer) UnaryResParams(context.Context, *UnaryEmptyRequest) (*UnaryResponseParams, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UnaryResParams not implemented")
+}
+func (UnimplementedTestServer) UnaryOneOfParams(context.Context, *UnaryOneOfParamsMsg) (*UnaryOneOfParamsMsg, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UnaryOneOfParams not implemented")
 }
 func (UnimplementedTestServer) UnaryParams(context.Context, *UnaryRequestParams) (*UnaryResponseParams, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UnaryParams not implemented")
@@ -284,6 +298,24 @@ func _Test_UnaryResParams_Handler(srv interface{}, ctx context.Context, dec func
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(TestServer).UnaryResParams(ctx, req.(*UnaryEmptyRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Test_UnaryOneOfParams_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UnaryOneOfParamsMsg)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TestServer).UnaryOneOfParams(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/go.client.test.Test/UnaryOneOfParams",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TestServer).UnaryOneOfParams(ctx, req.(*UnaryOneOfParamsMsg))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -415,6 +447,10 @@ var Test_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UnaryResParams",
 			Handler:    _Test_UnaryResParams_Handler,
+		},
+		{
+			MethodName: "UnaryOneOfParams",
+			Handler:    _Test_UnaryOneOfParams_Handler,
 		},
 		{
 			MethodName: "UnaryParams",
