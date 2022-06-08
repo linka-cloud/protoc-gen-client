@@ -177,6 +177,10 @@ func (p *client) generate(f pgs.File) {
 	p.imports = make(map[string]struct{})
 	for _, s := range f.Services() {
 		for _, m := range s.Methods() {
+			// TODO(adphi): support client, server and bidirectional streams
+			if m.ServerStreaming() || m.ClientStreaming() {
+				continue
+			}
 			for _, f := range m.Input().Fields() {
 				if !f.Type().IsEmbed() {
 					continue
