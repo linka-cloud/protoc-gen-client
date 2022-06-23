@@ -270,7 +270,11 @@ func (x *client{{ $name }}) {{ .Name }}({{ params .Input}}, opts ...grpc.CallOpt
 {{ end }}
 // unwrap convert grpc status error to go error
 func (x *client{{ $name }}) unwrap(err error) error {
-	if s, ok := status.FromError(err); ok && s != nil {
+	s, ok := status.FromError(err)
+	if !ok {
+		return err
+	}
+	if s != nil {
 		return fmt.Errorf(s.Message())
 	}
 	return nil

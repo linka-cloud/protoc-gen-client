@@ -110,7 +110,11 @@ func (x *clientTest) UnaryParamsAny(ctx context.Context, any *anypb.Any, string 
 
 // unwrap convert grpc status error to go error
 func (x *clientTest) unwrap(err error) error {
-	if s, ok := status.FromError(err); ok && s != nil {
+	s, ok := status.FromError(err)
+	if !ok {
+		return err
+	}
+	if s != nil {
 		return fmt.Errorf(s.Message())
 	}
 	return nil
