@@ -59,7 +59,11 @@ func (p *client) InitContext(c pgs.BuildContext) {
 				t := p.ctx.Type(v).String()
 				var o *gopb.Options
 				if ok, _ := v.Extension(gopb.E_Field, &o); ok && o.GetType() != "" {
-					t = o.GetType()
+					if v.InOneOf() && v.HasOptionalKeyword() {
+						t = "*" + o.GetType()
+					} else {
+						t = o.GetType()
+					}
 				}
 				switch {
 				case v.InRealOneOf():
@@ -68,8 +72,6 @@ func (p *client) InitContext(c pgs.BuildContext) {
 					}
 					oneofs[v.OneOf().Name().String()] = struct{}{}
 					params = append(params, fmt.Sprintf("%s is%s_%s", p.ctx.Name(v.OneOf()).LowerCamelCase(), p.ctx.Name(m), p.ctx.Name(v.OneOf())))
-				case v.InOneOf() && v.HasOptionalKeyword():
-					params = append(params, fmt.Sprintf("%s *%s", p.ctx.Name(v).LowerCamelCase(), t))
 				default:
 					params = append(params, fmt.Sprintf("%s %s", p.ctx.Name(v).LowerCamelCase(), t))
 				}
@@ -83,7 +85,11 @@ func (p *client) InitContext(c pgs.BuildContext) {
 				t := p.ctx.Type(v).String()
 				var o *gopb.Options
 				if ok, _ := v.Extension(gopb.E_Field, &o); ok && o.GetType() != "" {
-					t = o.GetType()
+					if v.InOneOf() && v.HasOptionalKeyword() {
+						t = "*" + o.GetType()
+					} else {
+						t = o.GetType()
+					}
 				}
 				switch {
 				case v.InRealOneOf():
@@ -92,8 +98,6 @@ func (p *client) InitContext(c pgs.BuildContext) {
 					}
 					oneofs[v.OneOf().Name().String()] = struct{}{}
 					returns = append(returns, fmt.Sprintf("%s is%s_%s", p.ctx.Name(v.OneOf()), p.ctx.Name(m), p.ctx.Name(v.OneOf())))
-				case v.InOneOf() && v.HasOptionalKeyword():
-					returns = append(returns, fmt.Sprintf("%s *%s", p.ctx.Name(v), t))
 				default:
 					returns = append(returns, fmt.Sprintf("%s %s", p.ctx.Name(v), t))
 				}

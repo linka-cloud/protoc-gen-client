@@ -33,7 +33,7 @@ type Test interface {
 	UnaryResParams(ctx context.Context, opts ...grpc.CallOption) (Msg *Message, err error)
 	UnaryOneOfParams(ctx context.Context, oneOf isUnaryOneOfParamsMsg_OneOf, opts ...grpc.CallOption) (OneOf isUnaryOneOfParamsMsg_OneOf, err error)
 	UnaryParams(ctx context.Context, msg *Message, opts ...grpc.CallOption) (Msg *Message, err error)
-	UnaryParamsAny(ctx context.Context, any *anypb.Any, string *String, opts ...grpc.CallOption) (Any *anypb.Any, String_ *String, err error)
+	UnaryParamsAny(ctx context.Context, any *anypb.Any, string *String, int64 *int64, opts ...grpc.CallOption) (Any *anypb.Any, String_ *String, Int64 *int64, err error)
 }
 
 func NewTest(cc grpc.ClientConnInterface) Test {
@@ -98,14 +98,14 @@ func (x *clientTest) UnaryParams(ctx context.Context, msg *Message, opts ...grpc
 }
 
 // UnaryParamsAny ...
-func (x *clientTest) UnaryParamsAny(ctx context.Context, any *anypb.Any, string *String, opts ...grpc.CallOption) (Any *anypb.Any, String_ *String, err error) {
+func (x *clientTest) UnaryParamsAny(ctx context.Context, any *anypb.Any, string *String, int64 *int64, opts ...grpc.CallOption) (Any *anypb.Any, String_ *String, Int64 *int64, err error) {
 	var res *UnaryResponseParamsAny
-	res, err = x.c.UnaryParamsAny(ctx, &UnaryRequestParamsAny{Any: any, String_: (*String)(string)}, opts...)
+	res, err = x.c.UnaryParamsAny(ctx, &UnaryRequestParamsAny{Any: any, String_: (*String)(string), Int64: int64}, opts...)
 	err = x.unwrap(err)
 	if err != nil {
 		return
 	}
-	return res.Any, res.String_, nil
+	return res.Any, res.String_, res.Int64, nil
 }
 
 // unwrap convert grpc status error to go error

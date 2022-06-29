@@ -45,10 +45,12 @@ message UnaryResponseParams {
 message UnaryRequestParamsAny {
   google.protobuf.Any any = 1;
   optional string string = 2 [(go.field).type = "String"];
+  optional int64 int64 = 3;
 }
 message UnaryResponseParamsAny {
   google.protobuf.Any any = 1;
   optional string string = 2 [(go.field).type = "String"];
+  optional int64 int64 = 3;
 }
 message UnaryOneOfParamsMsg {
   oneof one_of {
