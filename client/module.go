@@ -218,12 +218,16 @@ package {{ package . }}
 
 import (
     "context"
+    "errors"
     "fmt"
+    "io"
 
     "google.golang.org/grpc"
     "google.golang.org/grpc/status"
     {{ imports }}
 )
+
+var _ = errors.Is(io.EOF, nil)
 
 {{ range .Services }}
 {{ $name := .Name }}
@@ -237,7 +241,7 @@ type {{ $name }} interface {
 {{- else if .ClientStreaming }}
 
 {{- else if .ServerStreaming }}
-
+	{{ .Name }}({{ params .Input}}, opts ...grpc.CallOption) (<-chan *{{ .Name }}Msg, error)
 {{ else }}
 	{{ .Name }}({{ params .Input}}, opts ...grpc.CallOption) ({{ returns .Output }})
 {{- end }}
@@ -258,6 +262,34 @@ type client{{ $name }} struct {
 {{- else if .ClientStreaming }}
 
 {{- else if .ServerStreaming }}
+
+type {{ .Name }}Msg struct {
+	Msg *{{ name .Output }}
+	Err error
+}
+
+func (x *client{{ $name }}) {{ .Name }}({{ params .Input}}, opts ...grpc.CallOption) (cn <-chan *{{ .Name }}Msg, err error) {
+	ss, err := x.c.{{ .Name }}({{ requestParams .Input }})
+	if err != nil {
+		return nil, err
+	}
+	ch := make(chan *{{ .Name }}Msg, 1)
+	go func() {
+		defer close(ch)
+		for {
+			res, err := ss.Recv()
+			if errors.Is(io.EOF, err) {
+				return
+			}
+			if err != nil {
+				ch <- &{{ .Name }}Msg{Err: err}
+				break
+			}
+			ch <- &{{ .Name }}Msg{Msg: res}
+		}
+	}()
+	return ch, nil
+}
 
 {{ else }}
 // {{ .Name }} ...

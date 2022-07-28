@@ -18,12 +18,16 @@ package test
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/anypb"
 )
+
+var _ = errors.Is(io.EOF, nil)
 
 var _ Test = (*clientTest)(nil)
 
@@ -34,6 +38,7 @@ type Test interface {
 	UnaryOneOfParams(ctx context.Context, oneOf isUnaryOneOfParamsMsg_OneOf, opts ...grpc.CallOption) (OneOf isUnaryOneOfParamsMsg_OneOf, err error)
 	UnaryParams(ctx context.Context, msg *Message, opts ...grpc.CallOption) (Msg *Message, err error)
 	UnaryParamsAny(ctx context.Context, any *anypb.Any, string *String, int64 *int64, opts ...grpc.CallOption) (Any *anypb.Any, String_ *String, Int64 *int64, err error)
+	ServerStream(ctx context.Context, msg *Message, opts ...grpc.CallOption) (<-chan *ServerStreamMsg, error)
 }
 
 func NewTest(cc grpc.ClientConnInterface) Test {
@@ -106,6 +111,34 @@ func (x *clientTest) UnaryParamsAny(ctx context.Context, any *anypb.Any, string 
 		return
 	}
 	return res.Any, res.String_, res.Int64, nil
+}
+
+type ServerStreamMsg struct {
+	Msg *UnaryResponseParams
+	Err error
+}
+
+func (x *clientTest) ServerStream(ctx context.Context, msg *Message, opts ...grpc.CallOption) (cn <-chan *ServerStreamMsg, err error) {
+	ss, err := x.c.ServerStream(ctx, &UnaryRequestParams{Msg: msg}, opts...)
+	if err != nil {
+		return nil, err
+	}
+	ch := make(chan *ServerStreamMsg, 1)
+	go func() {
+		defer close(ch)
+		for {
+			res, err := ss.Recv()
+			if errors.Is(io.EOF, err) {
+				return
+			}
+			if err != nil {
+				ch <- &ServerStreamMsg{Err: err}
+				break
+			}
+			ch <- &ServerStreamMsg{Msg: res}
+		}
+	}()
+	return ch, nil
 }
 
 // unwrap convert grpc status error to go error
