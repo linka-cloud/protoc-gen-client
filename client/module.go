@@ -47,8 +47,13 @@ func (p *client) InitContext(c pgs.BuildContext) {
 	p.ctx = pgsgo.InitContext(c.Parameters())
 
 	tpl := template.New("client").Funcs(map[string]interface{}{
-		"package":      p.ctx.PackageName,
-		"name":         p.ctx.Name,
+		"package": p.ctx.PackageName,
+		"name": func(m pgs.Message) string {
+			if _, ok := p.imports[p.ctx.ImportPath(m).String()]; ok {
+				return fmt.Sprintf("%s.%s", p.ctx.PackageName(m), p.ctx.Name(m).String())
+			}
+			return p.ctx.Name(m).String()
+		},
 		"serverName":   p.ctx.ServerName,
 		"clientName":   p.ctx.ClientName,
 		"serverStream": p.ctx.ServerStream,
@@ -64,6 +69,9 @@ func (p *client) InitContext(c pgs.BuildContext) {
 					} else {
 						t = o.GetType()
 					}
+				}
+				if _, ok := p.imports[p.ctx.ImportPath(m).String()]; ok && o.GetType() != "" {
+					t = fmt.Sprintf("%s.%s", p.ctx.PackageName(m), t)
 				}
 				switch {
 				case v.InRealOneOf():
@@ -91,6 +99,9 @@ func (p *client) InitContext(c pgs.BuildContext) {
 						t = o.GetType()
 					}
 				}
+				if _, ok := p.imports[p.ctx.ImportPath(m).String()]; ok && o.GetType() != "" {
+					t = fmt.Sprintf("%s.%s", p.ctx.PackageName(m), t)
+				}
 				switch {
 				case v.InRealOneOf():
 					if _, ok := oneofs[v.OneOf().Name().String()]; ok {
@@ -110,19 +121,33 @@ func (p *client) InitContext(c pgs.BuildContext) {
 		"requestParams": func(m pgs.Message) string {
 			var fields []string
 			oneofs := make(map[string]struct{})
+			typeName := p.ctx.Name(m).UpperCamelCase().String()
+			if _, ok := p.imports[p.ctx.ImportPath(m).String()]; ok {
+				typeName = fmt.Sprintf("%s.%s", p.ctx.PackageName(m), typeName)
+			}
 			for _, v := range m.Fields() {
+				var o *gopb.Options
+				v.Extension(gopb.E_Field, &o)
 				switch {
 				case v.InRealOneOf():
 					if _, ok := oneofs[v.OneOf().Name().String()]; ok {
 						continue
 					}
 					oneofs[v.OneOf().Name().String()] = struct{}{}
-					fields = append(fields, fmt.Sprintf("%s: %s", p.ctx.Name(v.OneOf()), p.ctx.Name(v.OneOf()).LowerCamelCase()))
+					name := p.ctx.Name(v.OneOf()).String()
+					if n := o.GetName(); n != "" {
+						name = n
+					}
+					fields = append(fields, fmt.Sprintf("%s: %s", name, p.ctx.Name(v.OneOf()).LowerCamelCase()))
 				default:
-					fields = append(fields, fmt.Sprintf("%s: %s", p.ctx.Name(v), p.ctx.Name(v).LowerCamelCase()))
+					name := p.ctx.Name(v).String()
+					if n := o.GetName(); n != "" {
+						name = n
+					}
+					fields = append(fields, fmt.Sprintf("%s: %s", name, p.ctx.Name(v).LowerCamelCase()))
 				}
 			}
-			return fmt.Sprintf("ctx, &%s{%s}, opts...", p.ctx.Name(m).UpperCamelCase(), strings.Join(fields, ", "))
+			return fmt.Sprintf("ctx, &%s{%s}, opts...", typeName, strings.Join(fields, ", "))
 		},
 		"response": func(m pgs.Message) string {
 			var fields []string
@@ -134,9 +159,21 @@ func (p *client) InitContext(c pgs.BuildContext) {
 						continue
 					}
 					oneofs[v.OneOf().Name().String()] = struct{}{}
-					fields = append(fields, fmt.Sprintf("res.%s", p.ctx.Name(v.OneOf())))
+					var o *gopb.Options
+					v.Extension(gopb.E_Field, &o)
+					name := p.ctx.Name(v.OneOf()).String()
+					if n := o.GetName(); n != "" {
+						name = n
+					}
+					fields = append(fields, fmt.Sprintf("res.%s", name))
 				default:
-					fields = append(fields, fmt.Sprintf("res.%s", p.ctx.Name(v)))
+					var o *gopb.Options
+					v.Extension(gopb.E_Field, &o)
+					name := p.ctx.Name(v).String()
+					if n := o.GetName(); n != "" {
+						name = n
+					}
+					fields = append(fields, fmt.Sprintf("res.%s", name))
 				}
 			}
 			return strings.Join(append(fields, "nil"), ", ")
@@ -185,11 +222,14 @@ func (p *client) generate(f pgs.File) {
 			if m.ServerStreaming() || m.ClientStreaming() {
 				continue
 			}
+			current := p.ctx.ImportPath(s).String()
+			if i := p.ctx.ImportPath(m.Input()).String(); i != current {
+				p.imports[i] = struct{}{}
+			}
 			for _, f := range m.Input().Fields() {
 				if !f.Type().IsEmbed() {
 					continue
 				}
-				current := p.ctx.ImportPath(f.Message()).String()
 				if i := p.ctx.ImportPath(f.Type().Embed()).String(); i != current {
 					p.imports[i] = struct{}{}
 				}
@@ -198,7 +238,6 @@ func (p *client) generate(f pgs.File) {
 				if !f.Type().IsEmbed() {
 					continue
 				}
-				current := p.ctx.ImportPath(f.Message()).String()
 				if i := p.ctx.ImportPath(f.Type().Embed()).String(); i != current {
 					p.imports[i] = struct{}{}
 				}
@@ -294,7 +333,7 @@ func (x *client{{ $name }}) {{ .Name }}({{ params .Input}}, opts ...grpc.CallOpt
 {{ else }}
 // {{ .Name }} ...
 func (x *client{{ $name }}) {{ .Name }}({{ params .Input}}, opts ...grpc.CallOption) ({{ returns .Output }}){
-    {{- if not (empty .Output) }}var res *{{ .Output.Name }}{{ end }}
+    {{- if not (empty .Output) }}var res *{{ name .Output }}{{ end }}
     {{ if not (empty .Output) }}res{{ else }}_{{ end }}, err = x.c.{{ .Name }}({{ requestParams .Input }})
     err = x.unwrap(err)
     if err != nil {

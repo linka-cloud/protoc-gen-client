@@ -21,6 +21,8 @@ option go_package = "go.linka.cloud/protoc-gen-client/tests/pb/test";
 import "google/protobuf/any.proto";
 import "patch/go.proto";
 
+import "tests/pb/external/ext.proto";
+
 
 service Test {
   rpc UnaryEmpty(UnaryEmptyRequest) returns (UnaryEmptyResponse);
@@ -28,6 +30,7 @@ service Test {
   rpc UnaryResParams(UnaryEmptyRequest) returns (UnaryResponseParams);
   rpc UnaryOneOfParams(UnaryOneOfParamsMsg) returns (UnaryOneOfParamsMsg);
   rpc UnaryParams(UnaryRequestParams) returns (UnaryResponseParams);
+  rpc UnaryExternal(go.client.ext.External) returns (go.client.ext.External);
   rpc UnaryParamsAny(UnaryRequestParamsAny) returns (UnaryResponseParamsAny);
   rpc ClientStream(stream UnaryRequestParams) returns (UnaryResponseParams);
   rpc ServerStream(UnaryRequestParams) returns (stream UnaryResponseParams);

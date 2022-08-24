@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"io"
 
+	"go.linka.cloud/protoc-gen-client/tests/pb/external"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/anypb"
@@ -37,6 +38,7 @@ type Test interface {
 	UnaryResParams(ctx context.Context, opts ...grpc.CallOption) (Msg *Message, err error)
 	UnaryOneOfParams(ctx context.Context, oneOf isUnaryOneOfParamsMsg_OneOf, opts ...grpc.CallOption) (OneOf isUnaryOneOfParamsMsg_OneOf, err error)
 	UnaryParams(ctx context.Context, msg *Message, opts ...grpc.CallOption) (Msg *Message, err error)
+	UnaryExternal(ctx context.Context, name ext.Name, value string, opts ...grpc.CallOption) (Name ext.Name, Value string, err error)
 	UnaryParamsAny(ctx context.Context, any *anypb.Any, string *String, int64 *int64, opts ...grpc.CallOption) (Any *anypb.Any, String_ *String, Int64 *int64, err error)
 	ServerStream(ctx context.Context, msg *Message, opts ...grpc.CallOption) (<-chan *ServerStreamMsg, error)
 }
@@ -100,6 +102,17 @@ func (x *clientTest) UnaryParams(ctx context.Context, msg *Message, opts ...grpc
 		return
 	}
 	return res.Msg, nil
+}
+
+// UnaryExternal ...
+func (x *clientTest) UnaryExternal(ctx context.Context, name ext.Name, value string, opts ...grpc.CallOption) (Name ext.Name, Value string, err error) {
+	var res *ext.External
+	res, err = x.c.UnaryExternal(ctx, &ext.External{Key: name, Val: value}, opts...)
+	err = x.unwrap(err)
+	if err != nil {
+		return
+	}
+	return res.Key, res.Val, nil
 }
 
 // UnaryParamsAny ...

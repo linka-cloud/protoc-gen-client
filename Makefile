@@ -29,10 +29,12 @@ PROTO_IMPORTS = -I. \
 
 .PHONY: gen-tests
 gen-tests:
+	@@protoc $(PROTO_IMPORTS) --go-patch_out=plugin=debug,"tests:." tests/pb/external/ext.proto
 	@protoc $(PROTO_IMPORTS) --go-patch_out=plugin=debug,"tests:." tests/pb/test.proto
 
 PROTO_OPTS = paths=source_relative
 
 .PHONY: gen-example
 gen-example: install
+	@protoc $(PROTO_IMPORTS) --go-patch_out=plugin=go,$(PROTO_OPTS):. tests/pb/external/ext.proto
 	@protoc $(PROTO_IMPORTS) --go-patch_out=plugin=go,$(PROTO_OPTS):. --go-patch_out=plugin=go-grpc,$(PROTO_OPTS):. --go-patch_out=plugin=client,$(PROTO_OPTS):. tests/pb/test.proto

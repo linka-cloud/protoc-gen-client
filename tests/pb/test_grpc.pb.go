@@ -4,6 +4,7 @@ package test
 
 import (
 	context "context"
+	external "go.linka.cloud/protoc-gen-client/tests/pb/external"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -23,6 +24,7 @@ type TestClient interface {
 	UnaryResParams(ctx context.Context, in *UnaryEmptyRequest, opts ...grpc.CallOption) (*UnaryResponseParams, error)
 	UnaryOneOfParams(ctx context.Context, in *UnaryOneOfParamsMsg, opts ...grpc.CallOption) (*UnaryOneOfParamsMsg, error)
 	UnaryParams(ctx context.Context, in *UnaryRequestParams, opts ...grpc.CallOption) (*UnaryResponseParams, error)
+	UnaryExternal(ctx context.Context, in *external.External, opts ...grpc.CallOption) (*external.External, error)
 	UnaryParamsAny(ctx context.Context, in *UnaryRequestParamsAny, opts ...grpc.CallOption) (*UnaryResponseParamsAny, error)
 	ClientStream(ctx context.Context, opts ...grpc.CallOption) (Test_ClientStreamClient, error)
 	ServerStream(ctx context.Context, in *UnaryRequestParams, opts ...grpc.CallOption) (Test_ServerStreamClient, error)
@@ -76,6 +78,15 @@ func (c *testClient) UnaryOneOfParams(ctx context.Context, in *UnaryOneOfParamsM
 func (c *testClient) UnaryParams(ctx context.Context, in *UnaryRequestParams, opts ...grpc.CallOption) (*UnaryResponseParams, error) {
 	out := new(UnaryResponseParams)
 	err := c.cc.Invoke(ctx, "/go.client.test.Test/UnaryParams", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *testClient) UnaryExternal(ctx context.Context, in *external.External, opts ...grpc.CallOption) (*external.External, error) {
+	out := new(external.External)
+	err := c.cc.Invoke(ctx, "/go.client.test.Test/UnaryExternal", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -197,6 +208,7 @@ type TestServer interface {
 	UnaryResParams(context.Context, *UnaryEmptyRequest) (*UnaryResponseParams, error)
 	UnaryOneOfParams(context.Context, *UnaryOneOfParamsMsg) (*UnaryOneOfParamsMsg, error)
 	UnaryParams(context.Context, *UnaryRequestParams) (*UnaryResponseParams, error)
+	UnaryExternal(context.Context, *external.External) (*external.External, error)
 	UnaryParamsAny(context.Context, *UnaryRequestParamsAny) (*UnaryResponseParamsAny, error)
 	ClientStream(Test_ClientStreamServer) error
 	ServerStream(*UnaryRequestParams, Test_ServerStreamServer) error
@@ -222,6 +234,9 @@ func (UnimplementedTestServer) UnaryOneOfParams(context.Context, *UnaryOneOfPara
 }
 func (UnimplementedTestServer) UnaryParams(context.Context, *UnaryRequestParams) (*UnaryResponseParams, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UnaryParams not implemented")
+}
+func (UnimplementedTestServer) UnaryExternal(context.Context, *external.External) (*external.External, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UnaryExternal not implemented")
 }
 func (UnimplementedTestServer) UnaryParamsAny(context.Context, *UnaryRequestParamsAny) (*UnaryResponseParamsAny, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UnaryParamsAny not implemented")
@@ -334,6 +349,24 @@ func _Test_UnaryParams_Handler(srv interface{}, ctx context.Context, dec func(in
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(TestServer).UnaryParams(ctx, req.(*UnaryRequestParams))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Test_UnaryExternal_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(external.External)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TestServer).UnaryExternal(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/go.client.test.Test/UnaryExternal",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TestServer).UnaryExternal(ctx, req.(*external.External))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -455,6 +488,10 @@ var Test_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UnaryParams",
 			Handler:    _Test_UnaryParams_Handler,
+		},
+		{
+			MethodName: "UnaryExternal",
+			Handler:    _Test_UnaryExternal_Handler,
 		},
 		{
 			MethodName: "UnaryParamsAny",
