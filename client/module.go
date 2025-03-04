@@ -205,7 +205,19 @@ func (p *client) Execute(targets map[string]pgs.File, _ map[string]pgs.Package) 
 		if len(f.Services()) == 0 {
 			continue
 		}
-		p.generate(f)
+		var gen bool
+		for _, v := range f.Services() {
+			for _, v := range v.Methods() {
+				if v.ClientStreaming() {
+					continue
+				}
+				gen = true
+				break
+			}
+		}
+		if gen {
+			p.generate(f)
+		}
 	}
 	return p.Artifacts()
 }
