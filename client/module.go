@@ -270,15 +270,12 @@ package {{ package . }}
 import (
     "context"
     "errors"
-    "fmt"
     "io"
 
     "google.golang.org/grpc"
     "google.golang.org/grpc/status"
     {{ imports }}
 )
-
-var _ = errors.Is(io.EOF, nil)
 
 {{ range .Services }}
 {{ $name := .Name }}
@@ -362,7 +359,7 @@ func (x *client{{ $name }}) unwrap(err error) error {
 		return err
 	}
 	if s != nil {
-		return fmt.Errorf(s.Message())
+		return errors.New(s.Message())
 	}
 	return nil
 }

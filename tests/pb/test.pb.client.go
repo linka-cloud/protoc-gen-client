@@ -19,7 +19,6 @@ package test
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
 
 	"go.linka.cloud/protoc-gen-client/tests/pb/external"
@@ -27,8 +26,6 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/anypb"
 )
-
-var _ = errors.Is(io.EOF, nil)
 
 var _ Test = (*clientTest)(nil)
 
@@ -161,7 +158,7 @@ func (x *clientTest) unwrap(err error) error {
 		return err
 	}
 	if s != nil {
-		return fmt.Errorf(s.Message())
+		return errors.New(s.Message())
 	}
 	return nil
 }
