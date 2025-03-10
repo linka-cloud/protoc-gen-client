@@ -277,6 +277,8 @@ import (
     {{ imports }}
 )
 
+var _ = io.EOF
+
 {{ range .Services }}
 {{ $name := .Name }}
 
