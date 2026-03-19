@@ -23,9 +23,11 @@ import (
 
 	"go.linka.cloud/protoc-gen-client/tests/pb/external"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/anypb"
 )
+
+var _ = io.EOF
+var _ = context.Canceled
 
 var _ Test = (*clientTest)(nil)
 
@@ -51,7 +53,6 @@ type clientTest struct {
 // UnaryEmpty ...
 func (x *clientTest) UnaryEmpty(ctx context.Context, opts ...grpc.CallOption) (err error) {
 	_, err = x.c.UnaryEmpty(ctx, &UnaryEmptyRequest{}, opts...)
-	err = x.unwrap(err)
 	if err != nil {
 		return
 	}
@@ -61,7 +62,6 @@ func (x *clientTest) UnaryEmpty(ctx context.Context, opts ...grpc.CallOption) (e
 // UnaryReqParams ...
 func (x *clientTest) UnaryReqParams(ctx context.Context, msg *Message, opts ...grpc.CallOption) (err error) {
 	_, err = x.c.UnaryReqParams(ctx, &UnaryRequestParams{Msg: msg}, opts...)
-	err = x.unwrap(err)
 	if err != nil {
 		return
 	}
@@ -72,7 +72,6 @@ func (x *clientTest) UnaryReqParams(ctx context.Context, msg *Message, opts ...g
 func (x *clientTest) UnaryResParams(ctx context.Context, opts ...grpc.CallOption) (Msg *Message, err error) {
 	var res *UnaryResponseParams
 	res, err = x.c.UnaryResParams(ctx, &UnaryEmptyRequest{}, opts...)
-	err = x.unwrap(err)
 	if err != nil {
 		return
 	}
@@ -83,7 +82,6 @@ func (x *clientTest) UnaryResParams(ctx context.Context, opts ...grpc.CallOption
 func (x *clientTest) UnaryOneOfParams(ctx context.Context, oneOf isUnaryOneOfParamsMsg_OneOf, opts ...grpc.CallOption) (OneOf isUnaryOneOfParamsMsg_OneOf, err error) {
 	var res *UnaryOneOfParamsMsg
 	res, err = x.c.UnaryOneOfParams(ctx, &UnaryOneOfParamsMsg{OneOf: oneOf}, opts...)
-	err = x.unwrap(err)
 	if err != nil {
 		return
 	}
@@ -94,7 +92,6 @@ func (x *clientTest) UnaryOneOfParams(ctx context.Context, oneOf isUnaryOneOfPar
 func (x *clientTest) UnaryParams(ctx context.Context, msg *Message, opts ...grpc.CallOption) (Msg *Message, err error) {
 	var res *UnaryResponseParams
 	res, err = x.c.UnaryParams(ctx, &UnaryRequestParams{Msg: msg}, opts...)
-	err = x.unwrap(err)
 	if err != nil {
 		return
 	}
@@ -105,7 +102,6 @@ func (x *clientTest) UnaryParams(ctx context.Context, msg *Message, opts ...grpc
 func (x *clientTest) UnaryExternal(ctx context.Context, name ext.Name, value string, opts ...grpc.CallOption) (Name ext.Name, Value string, err error) {
 	var res *ext.External
 	res, err = x.c.UnaryExternal(ctx, &ext.External{Key: name, Val: value}, opts...)
-	err = x.unwrap(err)
 	if err != nil {
 		return
 	}
@@ -116,7 +112,6 @@ func (x *clientTest) UnaryExternal(ctx context.Context, name ext.Name, value str
 func (x *clientTest) UnaryParamsAny(ctx context.Context, any *anypb.Any, string *String, int64 *int64, opts ...grpc.CallOption) (Any *anypb.Any, String_ *String, Int64 *int64, err error) {
 	var res *UnaryResponseParamsAny
 	res, err = x.c.UnaryParamsAny(ctx, &UnaryRequestParamsAny{Any: any, String_: (*String)(string), Int64: int64}, opts...)
-	err = x.unwrap(err)
 	if err != nil {
 		return
 	}
@@ -149,16 +144,4 @@ func (x *clientTest) ServerStream(ctx context.Context, msg *Message, opts ...grp
 		}
 	}()
 	return ch, nil
-}
-
-// unwrap convert grpc status error to go error
-func (x *clientTest) unwrap(err error) error {
-	s, ok := status.FromError(err)
-	if !ok {
-		return err
-	}
-	if s != nil {
-		return errors.New(s.Message())
-	}
-	return nil
 }

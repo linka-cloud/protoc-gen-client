@@ -34,8 +34,10 @@ gen-tests:
 
 PROTO_OPTS = paths=source_relative
 
+UNWRAP := false
+
 .PHONY: gen-example
 gen-example: install
 	@protoc $(PROTO_IMPORTS) --go-patch_out=plugin=go,$(PROTO_OPTS):. tests/pb/external/ext.proto
-	@protoc $(PROTO_IMPORTS) --go-patch_out=plugin=go,$(PROTO_OPTS):. --go-patch_out=plugin=go-grpc,$(PROTO_OPTS):. --go-patch_out=plugin=client,$(PROTO_OPTS):. tests/pb/test.proto
-	@protoc $(PROTO_IMPORTS) --go-patch_out=plugin=go,$(PROTO_OPTS):. --go-patch_out=plugin=go-grpc,$(PROTO_OPTS):. --go-patch_out=plugin=client,$(PROTO_OPTS):. tests/bidi/test.proto
+	@protoc $(PROTO_IMPORTS) --go-patch_out=plugin=go,$(PROTO_OPTS):. --go-patch_out=plugin=go-grpc,$(PROTO_OPTS):. --go-patch_out=plugin=client,$(PROTO_OPTS),unwrap=$(UNWRAP):. tests/pb/test.proto
+	@protoc $(PROTO_IMPORTS) --go-patch_out=plugin=go,$(PROTO_OPTS):. --go-patch_out=plugin=go-grpc,$(PROTO_OPTS):. --go-patch_out=plugin=client,$(PROTO_OPTS),unwrap=$(UNWRAP):. tests/bidi/test.proto

@@ -36,6 +36,7 @@ type client struct {
 	ctx     pgsgo.Context
 	imports map[string]struct{}
 	tpl     *template.Template
+	unwarp  bool
 }
 
 func (p *client) Name() string {
@@ -45,6 +46,10 @@ func (p *client) Name() string {
 func (p *client) InitContext(c pgs.BuildContext) {
 	p.ModuleBase.InitContext(c)
 	p.ctx = pgsgo.InitContext(c.Parameters())
+	var err error
+	if p.unwarp, err = c.Parameters().Bool("unwrap"); err != nil {
+		p.Failf("failed to parse no_unwrap parameter: %v", err)
+	}
 
 	tpl := template.New("client").Funcs(map[string]interface{}{
 		"package": p.ctx.PackageName,
@@ -196,6 +201,9 @@ func (p *client) InitContext(c pgs.BuildContext) {
 			}
 			return imports
 		},
+		"unwrap": func() bool {
+			return p.unwarp
+		},
 	})
 	p.tpl = template.Must(tpl.Parse(fieldsTpl))
 }
@@ -273,11 +281,14 @@ import (
     "io"
 
     "google.golang.org/grpc"
-    "google.golang.org/grpc/status"
+    {{- if unwrap }}
+	"google.golang.org/grpc/status"
+	{{- end }}
     {{ imports }}
 )
 
 var _ = io.EOF
+var _ = context.Canceled
 
 {{ range .Services }}
 {{ $name := .Name }}
@@ -346,7 +357,9 @@ func (x *client{{ $name }}) {{ .Name }}({{ params .Input}}, opts ...grpc.CallOpt
 func (x *client{{ $name }}) {{ .Name }}({{ params .Input}}, opts ...grpc.CallOption) ({{ returns .Output }}){
     {{- if not (empty .Output) }}var res *{{ name .Output }}{{ end }}
     {{ if not (empty .Output) }}res{{ else }}_{{ end }}, err = x.c.{{ .Name }}({{ requestParams .Input }})
-    err = x.unwrap(err)
+	{{- if unwrap }}
+	err = x.unwrap(err)
+	{{- end }}
     if err != nil {
         return
     }
@@ -354,6 +367,7 @@ func (x *client{{ $name }}) {{ .Name }}({{ params .Input}}, opts ...grpc.CallOpt
 }
 {{ end }}
 {{ end }}
+{{ if unwrap }}
 // unwrap convert grpc status error to go error
 func (x *client{{ $name }}) unwrap(err error) error {
 	s, ok := status.FromError(err)
@@ -365,5 +379,6 @@ func (x *client{{ $name }}) unwrap(err error) error {
 	}
 	return nil
 }
+{{ end }}
 {{ end }}
 `
